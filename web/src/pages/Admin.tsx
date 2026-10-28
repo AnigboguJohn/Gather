@@ -2,7 +2,8 @@
  * Admin panel ("/admin") for the people who run Gather. Its own sign-in (platform admin accounts, not workspace
  * owners); the admin token lives in this tab only (sessionStorage).
  * Tabs: Overview (numbers, sign-ups chart, recent activity) · People (search, suspend, delete) ·
- * Workspaces (give or remove a plan, delete) · Meetings (live now with "End call", recent calls) · Payments.
+ * Workspaces (give or remove a plan, delete) · Meetings (live now with "End call", recent calls) · Payments ·
+ * Reviews (score, every review with who wrote it, hide or show on the public pages).
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -11,12 +12,13 @@ import { Logo } from "../components/Layout";
 import { Badge, Spinner, confirmToast, toast } from "../components/ui";
 import { api, ApiError } from "../lib/api";
 import { fmtDate, fmtTime, naira } from "../lib/format";
+import { ScoreSummary, Stars, WORDS, type ReviewSummary } from "../components/Reviews";
 import { ErrorNote, field, PasswordInput } from "./AuthKit";
 
 const KEY = "gather.admin";
 const getAdmin = () => { try { return sessionStorage.getItem(KEY); } catch { return null; } };
 const setAdmin = (t: string | null) => { try { t ? sessionStorage.setItem(KEY, t) : sessionStorage.removeItem(KEY); } catch { /* ignore */ } };
-type Tab = "overview" | "people" | "workspaces" | "meetings" | "payments";
+type Tab = "overview" | "people" | "workspaces" | "meetings" | "payments" | "reviews";
 
 export default function Admin() {
   const [token, setToken] = useState(getAdmin);
@@ -29,7 +31,7 @@ export default function Admin() {
   };
   useEffect(() => { if (token) call<{ email: string; name: string }>("/admin/me").then(setMe).catch(() => {}); }, [token]);
   if (!token) return <AdminSignIn onDone={(t) => { setAdmin(t); setToken(t); }} />;
-  const tabs: [Tab, string, string][] = [["overview", "Overview", "grid"], ["people", "People", "users"], ["workspaces", "Workspaces", "team"], ["meetings", "Meetings", "cam"], ["payments", "Payments", "card"]];
+  const tabs: [Tab, string, string][] = [["overview", "Overview", "grid"], ["people", "People", "users"], ["workspaces", "Workspaces", "team"], ["meetings", "Meetings", "cam"], ["payments", "Payments", "card"], ["reviews", "Reviews", "star"]];
 
   return (
     <div className="min-h-full bg-stone-100">
@@ -52,6 +54,7 @@ export default function Admin() {
         {tab === "workspaces" && <Workspaces call={call} />}
         {tab === "meetings" && <Meetings call={call} />}
         {tab === "payments" && <Payments call={call} />}
+        {tab === "reviews" && <Reviews call={call} />}
       </main>
     </div>
   );
@@ -295,6 +298,51 @@ function Payments({ call }: { call: Call }) {
           <tbody className="divide-y divide-stone-100">
             {!rows.length && <tr><td colSpan={7} className="px-4 py-10 text-center text-stone-500">No payments yet.</td></tr>}
             {rows.map((p) => <tr key={p.reference}><td className="px-4 py-3 text-stone-500">{fmtDate(p.created_at)}</td><td className="px-4 py-3 font-semibold">{p.org}</td><td className="px-4 py-3 text-stone-600">{p.payer ?? "—"}</td><td className="px-4 py-3 capitalize">{p.plan} × {p.months}</td><td className="px-4 py-3 capitalize text-stone-600">{p.provider}</td><td className="px-4 py-3 font-semibold">{naira(Number(p.amount_minor))}</td><td className="px-4 py-3"><Badge tone={p.status === "success" ? "green" : p.status === "failed" ? "red" : "stone"}>{p.status}</Badge></td></tr>)}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ Reviews */
+function Reviews({ call }: { call: Call }) {
+  const [d, reload] = useData(() => call<{ summary: ReviewSummary; asked: number; linksSent: number; reviews: any[] }>("/admin/reviews"));
+  const [stars, setStars] = useState(0);
+  if (!d) return <Loading />;
+  const toggle = async (r: any) => {
+    try { await call(`/admin/reviews/${r.id}`, { method: "PATCH", body: { hidden: !r.hidden } }); toast(r.hidden ? "Review shown on the public pages" : "Review hidden from the public pages"); reload(); }
+    catch (e) { toast((e as ApiError).message, "error"); }
+  };
+  const rows = d.reviews.filter((r) => !stars || r.rating === stars);
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between"><h1 className="text-2xl font-semibold tracking-tight">Reviews</h1><button onClick={reload} className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-stone-50"><Icon name="refresh" size={14} />Refresh</button></div>
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <Card><ScoreSummary s={d.summary} /></Card>
+        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+          {[["People asked", d.asked], ["Reviews written", d.reviews.length], ["Review links sent", d.linksSent]].map(([l, v]) => <Card key={l as string}><p className="text-sm text-stone-500">{l}</p><p className="mt-1 text-2xl font-semibold">{v}</p></Card>)}
+        </div>
+      </div>
+      <Card className="overflow-x-auto !p-0">
+        <div className="flex flex-wrap items-center gap-2 px-5 pt-5">
+          {[0, 5, 4, 3, 2, 1].map((n) => <button key={n} onClick={() => setStars(n)} className={`rounded-full px-3 py-1 text-xs font-semibold ${stars === n ? "bg-brand-700 text-white" : "bg-stone-100 text-stone-600"}`}>{n ? `${n}★ ${WORDS[n]}` : "All"}</button>)}
+        </div>
+        <table className="mt-3 w-full min-w-[60rem] text-sm">
+          <thead className="border-y border-stone-200 bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500"><tr>{["Date", "Who", "Rating", "Review", "Meeting", "Shown", ""].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
+          <tbody className="divide-y divide-stone-100">
+            {!rows.length && <tr><td colSpan={7} className="px-4 py-10 text-center text-stone-500">No reviews yet.</td></tr>}
+            {rows.map((r) => (
+              <tr key={r.id} className={r.hidden ? "bg-stone-50 text-stone-400" : ""}>
+                <td className="px-4 py-3 text-stone-500">{fmtDate(r.created_at)}</td>
+                <td className="px-4 py-3"><b className="block font-semibold">{r.name}{r.anonymous && <span className="ml-1 text-xs font-normal text-stone-500">(anonymous)</span>}</b><span className="text-xs text-stone-500">{r.role} · {r.email ?? (r.phone ? `+${r.phone}` : "—")}</span></td>
+                <td className="px-4 py-3"><Stars value={r.rating} size={14} /></td>
+                <td className="max-w-sm px-4 py-3 text-stone-600">{r.comment ?? <span className="text-stone-400">No comment</span>}{!!r.tags?.length && <span className="mt-1 block text-xs text-stone-500">{r.tags.join(" · ")}</span>}</td>
+                <td className="px-4 py-3 text-stone-500">{r.meeting ?? "—"}<span className="block text-xs">{r.via === "link" ? "from the link" : "after the call"}</span></td>
+                <td className="px-4 py-3">{r.hidden ? <Badge tone="red">Hidden</Badge> : <Badge tone="green">Public</Badge>}</td>
+                <td className="px-4 py-3 text-right"><button onClick={() => toggle(r)} className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-semibold hover:bg-stone-50">{r.hidden ? "Show" : "Hide"}</button></td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </Card>

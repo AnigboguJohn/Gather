@@ -122,10 +122,17 @@ html, body, #root { height: 100%; }
 .reveal-down:not(.in) { translate: 0 -40px; }
 .reveal-fade:not(.in) { translate: none; }
 .reveal-zoom:not(.in) { translate: none; scale: .4; }
+/* Reviews: two rows of cards glide sideways in opposite directions (pause on hover); stars pop when picked. */
+.marquee-rev { animation-direction: reverse; animation-duration: 46s; }
+.marquee-slow { animation-duration: 40s; }
+@keyframes star-pop { 0% { scale: .4; rotate: -40deg } 60% { scale: 1.3; rotate: 8deg } 100% { scale: 1; rotate: 0deg } }
+.star-pop { animation: star-pop .45s cubic-bezier(.2,.8,.3,1.3) both; }
+@keyframes rise-in { from { opacity: 0; translate: 0 16px } to { opacity: 1; translate: 0 0 } }
+.rise-in { animation: rise-in .5s cubic-bezier(.2,.7,.2,1) both; }
 /* People who ask for less motion get a still page. */
 @media (prefers-reduced-motion: reduce) {
   .hero-in, .float, .float-x, .rec, .pop, .blob, .marquee, .tab-in, .progress, .dash, .wiggle,
-  .enter-up, .enter-down, .enter-left, .enter-right, .enter-zoom { animation: none !important; }
+  .enter-up, .enter-down, .enter-left, .enter-right, .enter-zoom, .star-pop, .rise-in { animation: none !important; }
   .draw { animation: none; stroke-dashoffset: 0; }
   .reveal-left, .reveal-right, .reveal-down, .reveal-zoom { translate: none !important; scale: none !important; }
   .reveal { opacity: 1; translate: none; transition: none; }

@@ -2,17 +2,19 @@
  * Landing page ("/"), laid out like the Monvo reference with Kepripun's join box:
  * hero (headline, buttons, "paste your meeting link", counting facts, floating capsule video tiles with REC badges
  * and reaction bubbles) · scrolling "works with" strip · "Never miss a detail" tabs (captions, summaries, Ask,
- * data saver) · integrations · "Meet without a hitch" (Kepripun's tile network) · try-it-today · footer with a large wordmark · a round "back to top" button once you scroll down.
+ * data saver) · integrations · "Meet without a hitch" (Kepripun's tile network) · reviews (live score and two rows of
+ * review cards gliding sideways in opposite directions) · try-it-today · footer with a large wordmark · a round "back to top" button once you scroll down.
  *
  * Animations: tiles float, REC dots blink, facts count up, the strip scrolls, sections fade up as they come into
  * view, tabs fade in; the tile network flies in from above, below, left and right when it comes into view. All of it stops for people who ask their device for reduced motion (index.css).
  * Photos are from Unsplash (free licence), loaded small and lazily for slow networks. Only real product facts:
- * no made-up user counts, customer logos or quotes.
+ * no made-up user counts, customer logos or quotes: the reviews are real ones from hosts and guests (reviews.ts).
  */
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Layout";
 import { Icon } from "../components/Icon";
+import { ReviewCard, ScoreSummary, StarBoxes, useLiveReviews, type PublicReview } from "../components/Reviews";
 import { useAuth } from "../lib/auth";
 
 /** An Unsplash photo, cropped to the size it's shown at (keeps downloads small on mobile data). */
@@ -105,6 +107,7 @@ export default function Landing() {
   const [linkErr, setLinkErr] = useState(false);
   const [tab, setTab] = useState(FEATURES[0].id);
   useReveal(page);
+  const reviews = useLiveReviews({ limit: 24 });
   if (me) return <Navigate to="/home" replace />;
   const join = (e: React.FormEvent) => { e.preventDefault(); const p = joinPath(link); if (p) nav(p); else setLinkErr(true); };
   const f = FEATURES.find((x) => x.id === tab)!;
@@ -121,6 +124,7 @@ export default function Landing() {
             <a href="#features" className="hover:text-brand-800">Features</a>
             <a href="#integrations" className="hover:text-brand-800">Integrations</a>
             <a href="#how" className="hover:text-brand-800">How it works</a>
+            <a href="#reviews" className="hover:text-brand-800">Reviews</a>
           </nav>
           <div className="ml-auto flex items-center gap-3 md:ml-0">
             <Link to="/signin" className="text-sm font-semibold text-stone-800 hover:text-brand-800">Sign in</Link>
@@ -153,6 +157,15 @@ export default function Landing() {
               </div>
               {linkErr && <p className="mt-1.5 pl-5 text-xs text-red-600">That doesn't look like a Gather link. It looks like …/j/xsk-yweq-evb</p>}
             </form>
+
+            {/* Live rating from real reviews (only once there are some) */}
+            {!!reviews.data?.summary.count && (
+              <a href="#reviews" className="rise-in mt-5 inline-flex flex-wrap items-center gap-2.5 rounded-full bg-white/80 px-4 py-2 text-sm shadow-sm backdrop-blur transition hover:bg-white">
+                <StarBoxes value={reviews.data.summary.score} size={18} />
+                <b className="text-stone-800">{reviews.data.summary.score.toFixed(1)} {reviews.data.summary.label}</b>
+                <span className="text-stone-500 underline decoration-stone-300 underline-offset-2">{reviews.data.summary.count} review{reviews.data.summary.count === 1 ? "" : "s"}</span>
+              </a>
+            )}
 
             {/* Real facts, counting up */}
             <dl className="hero-in mt-10 flex flex-wrap gap-x-12 gap-y-5 [animation-delay:420ms]">
@@ -289,6 +302,9 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ------------------------------------------------------------ Reviews (live) */}
+      <Testimonials data={reviews.data} fresh={reviews.fresh} />
+
       {/* ------------------------------------------------------------ Try it today */}
       <section className="px-5 pb-20">
         <div className="reveal relative mx-auto max-w-6xl overflow-hidden rounded-[2.5rem] bg-brand-900 px-6 py-16 text-center text-white md:py-20">
@@ -314,7 +330,7 @@ export default function Landing() {
               <p className="mt-3 text-sm text-stone-600">Video meetings for weak, expensive mobile data and many languages, starting with Africa.</p>
             </div>
             <div className="grid grid-cols-3 gap-6 text-sm">
-              <div className="space-y-2"><p className="font-semibold">Product</p><a href="#features" className="block text-stone-600 hover:text-stone-900">Features</a><a href="#integrations" className="block text-stone-600 hover:text-stone-900">Integrations</a><a href="#how" className="block text-stone-600 hover:text-stone-900">How it works</a></div>
+              <div className="space-y-2"><p className="font-semibold">Product</p><a href="#features" className="block text-stone-600 hover:text-stone-900">Features</a><a href="#integrations" className="block text-stone-600 hover:text-stone-900">Integrations</a><a href="#how" className="block text-stone-600 hover:text-stone-900">How it works</a><Link to="/reviews" className="block text-stone-600 hover:text-stone-900">Reviews</Link></div>
               <div className="space-y-2"><p className="font-semibold">Account</p><Link to="/signup" className="block text-stone-600 hover:text-stone-900">Create account</Link><Link to="/signin" className="block text-stone-600 hover:text-stone-900">Sign in</Link></div>
               <div className="space-y-2"><p className="font-semibold">Guests</p><a href="#join" className="block text-stone-600 hover:text-stone-900">Join a meeting</a></div>
             </div>
@@ -328,6 +344,65 @@ export default function Landing() {
 
       <BackToTop />
     </div>
+  );
+}
+
+/**
+ * "What our people say": the live score on the left, the heading on the right, then review cards gliding sideways
+ * in two rows going opposite ways (they pause under the mouse). With only a few reviews the cards sit still.
+ */
+function Testimonials({ data, fresh }: { data: ReturnType<typeof useLiveReviews>["data"]; fresh: string | null }) {
+  const list = data?.reviews ?? [];
+  // Repeat short lists so each moving row is wider than the screen (the row is drawn twice for a seamless loop).
+  const fill = (rs: PublicReview[]) => (rs.length ? Array.from({ length: Math.max(1, Math.ceil(6 / rs.length)) }, () => rs).flat() : []);
+  const moving = list.length >= 3;
+  const rows = list.length >= 8 ? [list.filter((_, i) => i % 2 === 0), list.filter((_, i) => i % 2 === 1)] : [list];
+  return (
+    <section id="reviews" className="scroll-mt-6 overflow-hidden bg-gradient-to-b from-white via-sky-50/70 to-white py-20">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 md:grid-cols-[1fr_1fr]">
+        <div className="reveal reveal-left order-2 rounded-[2rem] bg-white p-7 shadow-xl shadow-stone-900/5 ring-1 ring-stone-100 md:order-1">
+          {data ? <ScoreSummary s={data.summary} /> : <div className="h-64 animate-pulse rounded-2xl bg-stone-100" />}
+          <Link to="/reviews" className="group mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-800">See all reviews<Icon name="arrow" size={15} className="transition group-hover:translate-x-1" /></Link>
+        </div>
+        <div className="reveal reveal-right order-1 md:order-2">
+          <p className="flex items-center gap-2 text-sm font-semibold text-amber-600"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sky-600"><Icon name="chat" size={16} /></span>What our people say</p>
+          <h2 className="mt-3 text-4xl font-semibold leading-tight tracking-tight md:text-5xl"><span className="text-amber-400">★</span> Real reviews,<br />real meetings</h2>
+          <p className="mt-4 max-w-md text-stone-600">Every host and guest is asked after their first meeting. We show every review, good or bad, the moment it's written.</p>
+        </div>
+      </div>
+
+      <div className="reveal reveal-fade mt-12">
+        {!data ? null : !list.length ? (
+          <div className="mx-auto max-w-md px-5 text-center">
+            <div className="rounded-3xl border-2 border-dashed border-stone-200 bg-white/70 p-8">
+              <p className="text-3xl">⭐</p>
+              <p className="mt-2 font-semibold">No reviews yet</p>
+              <p className="mt-1 text-sm text-stone-500">Hosts and guests rate Gather after their first meeting. Yours could be the first.</p>
+              <Link to="/signup" className="mt-5 inline-block rounded-full bg-brand-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">Start a meeting</Link>
+            </div>
+          </div>
+        ) : !moving ? (
+          <div className="mx-auto flex max-w-6xl flex-wrap justify-center gap-5 px-5">
+            {list.map((r, i) => <ReviewCard key={r.id} r={r} tone={i % 2 ? "white" : "brand"} className={`rise-in w-full max-w-sm ${i % 2 ? "rotate-1" : "-rotate-1"}`} />)}
+          </div>
+        ) : (
+          <div className="marquee-mask space-y-6 py-3">
+            {rows.map((row, ri) => (
+              <div key={ri} className={`marquee flex w-max ${ri ? "marquee-rev" : "marquee-slow"}`}>
+                {[0, 1].map((copy) => (
+                  <div key={copy} className="flex shrink-0 gap-6 pr-6" aria-hidden={copy === 1}>
+                    {fill(row).map((r, i) => (
+                      <ReviewCard key={`${r.id}-${i}`} r={r} tone={(i + ri) % 2 ? "white" : "brand"}
+                        className={`w-[19rem] shrink-0 transition duration-300 hover:-translate-y-1 hover:rotate-0 sm:w-[22rem] ${(i + ri) % 2 ? "rotate-1" : "-rotate-1"} ${r.id === fresh ? "ring-4 ring-amber-300" : ""}`} />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

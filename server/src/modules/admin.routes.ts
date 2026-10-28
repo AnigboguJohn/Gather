@@ -4,7 +4,7 @@
  * and sign in at /admin. Their token ("admin", 12 hours) works only on these routes.
  *
  * Overview numbers · people (search, suspend, delete) · workspaces (plan changes) · meetings (live now, recent calls,
- * end a live call) · payments.
+ * end a live call) · payments · reviews (read all, hide or show one).
  */
 import { Router, type NextFunction, type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
@@ -16,6 +16,7 @@ import { hashPasscode, passcodeMatches } from "../lib/codes.js";
 import { ah, HttpError, parse, rateLimit } from "../lib/http.js";
 import { effectivePlan, PLANS, type Plan } from "../lib/plans.js";
 import { endMeeting, getRoom, liveRoomInfo } from "./rooms.js";
+import { broadcastReviews, reviewSummary } from "./reviews.js";
 
 export const adminRouter = Router();
 
@@ -182,4 +183,23 @@ adminRouter.get("/admin/payments", ah(async (_req, res) => {
 }));
 
 /** Plan names for the panel's menus. */
+/* ---------- Reviews ---------- */
+/** Every review with the reviewer's contact (admins only), newest first. */
+adminRouter.get("/admin/reviews", ah(async (_req, res) => {
+  const rows = await q(`SELECT r.*, m.title AS meeting FROM reviews r LEFT JOIN sessions s ON s.id = r.session_id
+                        LEFT JOIN meetings m ON m.id = s.meeting_id ORDER BY r.created_at DESC LIMIT 500`);
+  const asked = await one("SELECT count(*) AS asked, count(*) FILTER (WHERE sent_status = 'sent') AS sent FROM review_requests");
+  res.json({ summary: await reviewSummary(), asked: Number(asked.asked), linksSent: Number(asked.sent), reviews: rows });
+}));
+
+/** Hide a review from the public pages (spam, abuse) or show it again. */
+adminRouter.patch("/admin/reviews/:id", ah(async (req, res) => {
+  const b = parse(z.object({ hidden: z.boolean() }), req.body);
+  const r = await one("UPDATE reviews SET hidden = $2 WHERE id = $1 RETURNING id", [req.params.id, b.hidden]);
+  if (!r) throw new HttpError(404, "Review not found.");
+  log.info({ admin: req.admin!.email, review: r.id, hidden: b.hidden }, "review visibility changed");
+  broadcastReviews("changed", { id: r.id });
+  res.json({ ok: true });
+}));
+
 adminRouter.get("/admin/plans", (_req, res) => res.json((Object.keys(PLANS) as Plan[]).map((id) => ({ id, name: PLANS[id].name, price: PLANS[id].priceNgnMonthly }))));

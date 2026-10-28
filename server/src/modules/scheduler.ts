@@ -8,6 +8,7 @@ import { log } from "../log.js";
 import { joinUrl, reminderText } from "../lib/messages.js";
 import { reach } from "../lib/notify.js";
 import { dueReminders, nextOccurrence } from "../lib/time.js";
+import { sendDueReviewLinks } from "./reviews.js";
 
 /**
  * One scheduler pass. For every upcoming scheduled meeting: find its next occurrence, see which reminder is
@@ -44,7 +45,11 @@ export async function sendDueReminders(now = new Date()) {
 
 /** Run the scheduler 5 seconds after boot, then every minute. Errors are logged, never crash the server. */
 export function startScheduler() {
-  const tick = () => sendDueReminders().then((n) => n && log.info({ n }, "reminders sent")).catch((e) => log.error({ err: e?.message }, "scheduler"));
+  const tick = () => {
+    sendDueReminders().then((n) => n && log.info({ n }, "reminders sent")).catch((e) => log.error({ err: e?.message }, "scheduler"));
+    // Review links for people who skipped the rating on their first meeting.
+    sendDueReviewLinks().then((n) => n && log.info({ n }, "review links sent")).catch((e) => log.error({ err: e?.message }, "review links"));
+  };
   setTimeout(tick, 5_000);
   return setInterval(tick, 60_000);
 }

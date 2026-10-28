@@ -21,7 +21,8 @@ import { Link } from "react-router-dom";
 import { Track, type Participant } from "livekit-client";
 import { Icon } from "../components/Icon";
 import { Logo, NAV } from "../components/Layout";
-import { getToken } from "../lib/api";
+import { api, getToken } from "../lib/api";
+import { RatingForm, type ReviewInput, type ReviewTags } from "../components/Reviews";
 import { confirmToast, copy, Spinner, toast } from "../components/ui";
 import { fmtDuration, fmtTime } from "../lib/format";
 import { DataMeter } from "./dataMeter";
@@ -126,7 +127,7 @@ export default function RoomView({ join, title, e2eeKey, lang, startCamera, save
   const reactionsFor = (id: string) => call.reactions.filter((r) => r.identity === id).map((r) => r.emoji);
 
   // Meeting over (or we left / were removed): show the end screen.
-  if (call.ended) return <Ended reason={call.ended} host={host} meetingId={meetingId} themeCls={themeCls} />;
+  if (call.ended) return <Ended reason={call.ended} host={host} meetingId={meetingId} themeCls={themeCls} ticket={join.ticket} />;
   // Still connecting to the media server.
   if (!room) {
     return <div className={`${themeCls} flex h-full flex-col items-center justify-center gap-3 bg-ink-900 text-white`}><Spinner size={32} /><p>Connecting to the call…</p>
@@ -602,8 +603,11 @@ function HostRequests({ call, onOpen }: { call: ReturnType<typeof useCall>; onOp
   );
 }
 
-/** End screen: why the meeting ended, and where the summary will arrive. */
-function Ended({ reason, host, meetingId, themeCls }: { reason: string; host: boolean; meetingId?: string; themeCls: string }) {
+/**
+ * End screen: why the meeting ended and where the summary will arrive. On someone's first meeting it also asks
+ * them to rate Gather (host or guest); "Not now" sends them the review link on WhatsApp/email instead.
+ */
+function Ended({ reason, host, meetingId, themeCls, ticket }: { reason: string; host: boolean; meetingId?: string; themeCls: string; ticket: string }) {
   const text: Record<string, string> = {
     left: "You left the meeting.",
     host_ended: "The host ended the meeting.",
@@ -612,11 +616,33 @@ function Ended({ reason, host, meetingId, themeCls }: { reason: string; host: bo
     removed: "The host removed you from this meeting.",
     gone: "This meeting has ended.",
   };
+  // Review: "loading" until we know, then "ask" (first meeting), "skipped" (link sent) or "no".
+  const [review, setReview] = useState<{ step: "loading" | "ask" | "skipped" | "no"; tags?: ReviewTags; name?: string; sentTo?: string }>({ step: reason === "removed" ? "no" : "loading" });
+  useEffect(() => {
+    if (reason === "removed") return;
+    api<{ ask: boolean; tags?: ReviewTags; name?: string }>("/rooms/review", { token: ticket })
+      .then((r) => setReview(r.ask && r.tags ? { step: "ask", tags: r.tags, name: r.name } : { step: "no" }))
+      .catch(() => setReview({ step: "no" }));
+  }, [reason, ticket]);
+  const skip = async () => {
+    setReview((r) => ({ ...r, step: "skipped" }));
+    const r = await api<{ sent: string | null; email?: boolean; phone?: boolean }>("/rooms/review/skip", { method: "POST", token: ticket }).catch(() => null);
+    setReview((x) => ({ ...x, sentTo: r?.sent === "sent" ? [r.phone && "WhatsApp", r.email && "email"].filter(Boolean).join(" and ") || "you" : undefined }));
+  };
+  const asking = review.step === "ask" && review.tags;
   return (
-    <div className={`${themeCls} flex h-full flex-col items-center justify-center gap-4 bg-ink-900 px-6 text-center text-white`}>
-      <p className="text-5xl">👋</p>
-      <h1 className="text-2xl font-bold">{text[reason] ?? "The meeting ended."}</h1>
-      {reason !== "removed" && <p className="max-w-md text-white/60">If you left a WhatsApp number or email, the summary and action items will arrive there shortly, in your language.</p>}
+    <div className={`${themeCls} flex h-full flex-col items-center justify-center gap-4 overflow-y-auto bg-ink-900 px-4 py-8 text-center text-white`}>
+      <p className={asking ? "text-3xl" : "text-5xl"}>👋</p>
+      <h1 className={`${asking ? "text-xl" : "text-2xl"} font-bold`}>{text[reason] ?? "The meeting ended."}</h1>
+      {asking ? (
+        <RatingForm variant="call" tags={review.tags!}
+          title={`How was it${review.name ? `, ${review.name.split(/\s+/)[0]}` : ""}?`}
+          subtitle="This was your first meeting on Gather. Rate it, good or bad: it takes 30 seconds."
+          onSubmit={(r: ReviewInput) => api("/rooms/review", { method: "POST", token: ticket, body: r })} onSkip={skip} />
+      ) : (
+        reason !== "removed" && <p className="max-w-md text-white/60">If you left a WhatsApp number or email, the summary and action items will arrive there shortly, in your language.</p>
+      )}
+      {review.step === "skipped" && <p className="max-w-md rounded-xl bg-white/10 px-4 py-2.5 text-sm text-white/80">No problem. {review.sentTo ? `We've sent the review link to your ${review.sentTo}, ` : "You can rate Gather later from the link we send you, "}whenever you have a minute.</p>}
       <div className="flex gap-2">
         {reason === "left" && <button onClick={() => window.location.reload()} className="rounded-xl bg-white/10 px-4 py-2.5 font-semibold">Rejoin</button>}
         {host && meetingId ? <Link to={`/meetings/${meetingId}`} className="rounded-xl bg-brand-600 px-4 py-2.5 font-semibold">Meeting page</Link>

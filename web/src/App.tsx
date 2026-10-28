@@ -24,6 +24,8 @@ import { Billing, BillingDemo, BillingReturn } from "./pages/Billing";
 import { CheckoutPage, ReceiptPage } from "./pages/Checkout";
 import Settings from "./pages/Settings";
 import Rsvp from "./pages/Rsvp";
+import ReviewLink from "./pages/ReviewLink";
+import ReviewsPage from "./pages/ReviewsPage";
 
 // The call screen pulls in the media library, so it loads only when someone joins.
 const Join = lazy(() => import("./pages/Join"));
@@ -61,6 +63,8 @@ export default function App() {
           <Route path="/signup/details" element={<SignUpDetails />} />
           <Route path="/j/:slug" element={<Join />} />
           <Route path="/r/:token" element={<Rsvp />} />
+          <Route path="/review/:token" element={<ReviewLink />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
           {/* Host/team pages share the sidebar layout and require sign-in */}
           <Route element={<Private><Layout /></Private>}>
             <Route path="/home" element={<Home />} />

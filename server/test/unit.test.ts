@@ -1,7 +1,7 @@
 /**
  * Unit tests for the server's pure logic (no database, no network): codes, passcodes, meeting links,
  * weekly occurrences and reminder windows, time zones, calendar files, plans and prices, phone numbers,
- * message wording, payment webhook signatures, calendar event bodies and CSV safety.
+ * message wording, payment webhook signatures, calendar event bodies, CSV safety and review names.
  * Run: npm test
  */
 import { test } from "node:test";
@@ -18,6 +18,7 @@ const { inviteText, summaryText } = await import("../src/lib/messages.ts");
 const { paystackSignatureValid, flutterwaveSignatureValid } = await import("../src/modules/billing.routes.ts");
 const { eventBody } = await import("../src/modules/calendar.ts");
 const { csvCell } = await import("../src/modules/meetings.routes.ts");
+const { publicName, scoreLabel, who } = await import("../src/modules/reviews.ts");
 
 // Sign-in codes: always 6 digits, stored as HMAC, spaces ignored, wrong code/secret rejected.
 test("codes: 6 digits, hashed, constant-time match", () => {
@@ -132,4 +133,14 @@ test("CSV cells are escaped and safe from formula injection", () => {
   assert.equal(csvCell('a,"b"'), '"a,""b"""');
   assert.equal(csvCell("=HYPERLINK()"), `"'=HYPERLINK()"`);
   assert.equal(csvCell(null), "");
+});
+
+// Reviews: public names never show full surnames or contacts; reviewers are matched by normalised contacts.
+test("reviews: public names, score words and contact keys", () => {
+  assert.equal(publicName("Ngozi  Adeyemi", false), "Ngozi A.");
+  assert.equal(publicName("Tunde", false), "Tunde");
+  assert.equal(publicName("Ngozi Adeyemi", true), "Anonymous");
+  assert.deepEqual([4.8, 4, 3, 2, 1].map(scoreLabel), ["Excellent", "Great", "Average", "Poor", "Bad"]);
+  const w = who({ name: " Amara ", email: " Amara@X.com ", phone: "0803 123 4567" });
+  assert.deepEqual([w.email, w.phone, w.userId, w.role, w.name], ["amara@x.com", "2348031234567", null, "guest", "Amara"]);
 });

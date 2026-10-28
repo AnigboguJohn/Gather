@@ -20,6 +20,7 @@ import { billingRouter } from "./modules/billing.routes.js";
 import { extrasRouter } from "./modules/extras.routes.js";
 import { joinRouter } from "./modules/join.routes.js";
 import { meetingsRouter } from "./modules/meetings.routes.js";
+import { reviewsRouter } from "./modules/reviews.js";
 
 /** Build the app. Exported separately from index.ts so tests could mount it without a port. */
 export function createApp() {
@@ -44,7 +45,7 @@ export function createApp() {
 
   // All route modules share one /api router.
   const api = express.Router();
-  api.use(authRouter, meetingsRouter, joinRouter, billingRouter, extrasRouter, adminRouter);
+  api.use(authRouter, meetingsRouter, joinRouter, billingRouter, extrasRouter, reviewsRouter, adminRouter);
   app.use("/api", api);
   // Unknown API paths get JSON 404s (not the web app's index.html).
   app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));

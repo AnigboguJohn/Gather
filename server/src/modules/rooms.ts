@@ -23,6 +23,7 @@ import { HttpError, rateLimit } from "../lib/http.js";
 import { isLanguage } from "../lib/languages.js";
 import { closeRoom, kick, mediaToken, muteTrack, setPerms, type Perms } from "../lib/livekit.js";
 import { effectivePlan, meetingLimitMinutes, PLANS, type Plan } from "../lib/plans.js";
+import { requestReviewsForSession } from "./reviews.js";
 import { runSummary } from "./summary.js";
 
 /** The only reactions allowed (anything else is refused, so nobody can spam arbitrary text as "emoji"). */
@@ -153,6 +154,8 @@ export async function endMeeting(room: Room, reason: "host_ended" | "time_limit"
            WHEN status = 'cancelled' THEN 'cancelled' ELSE 'ended' END WHERE id = $1`, [room.meetingId]);
   log.info({ slug: room.slug, reason }, "meeting ended");
   if (!room.e2ee) runSummary(room.sessionId).catch((e) => log.error({ err: e?.message }, "summary failed"));
+  // Everyone in their first meeting is now "asked" for a review; skippers get the link later (reviews.ts).
+  requestReviewsForSession(room.sessionId).catch((e) => log.error({ err: e?.message }, "review requests failed"));
   setTimeout(() => io?.in(mainRoom(room.slug)).disconnectSockets(true), 1500);
 }
 
