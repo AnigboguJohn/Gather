@@ -395,7 +395,7 @@ export default function RoomView({ join, title, e2eeKey, lang, startCamera, save
 
       {/* Time-limit warning banner (15 and 5 minutes before the end); Free-plan hosts get an Upgrade link. */}
       {call.warning && (
-        <div className="mx-3 mb-2 sm:mx-5 flex items-center gap-3 rounded-xl bg-amber-400 px-3 py-2 text-sm font-medium text-stone-900 sm:mx-5">
+        <div className="mx-3 mb-2 sm:mx-5 flex items-center gap-3 rounded-xl bg-amber-400 px-3 py-2 text-sm font-medium text-stone-900">
           <Icon name="clock" size={18} />
           <span className="flex-1">This meeting ends in {call.warning.minutesLeft} minutes ({state?.plan === "free" ? "Free plan limit: 2 hours" : "plan limit"}).</span>
           {host && state?.plan === "free" && <a href="/billing" target="_blank" className="rounded-lg bg-stone-900 px-2.5 py-1 text-xs text-white">Upgrade</a>}
@@ -403,7 +403,7 @@ export default function RoomView({ join, title, e2eeKey, lang, startCamera, save
         </div>
       )}
       {/* Recording upload progress (host only). */}
-      {recUpload !== null && <div className="mx-3 mb-2 sm:mx-5 rounded-xl bg-white/10 px-3 py-2 text-sm sm:mx-5">Uploading recording… {recUpload}%</div>}
+      {recUpload !== null && <div className="mx-3 mb-2 sm:mx-5 rounded-xl bg-white/10 px-3 py-2 text-sm">Uploading recording… {recUpload}%</div>}
 
         {/* Stage: the big view and the row underneath at one width (or the gallery) */}
         <main ref={stageRef} className="flex min-h-0 flex-1 flex-col bg-ink-900 px-2 sm:px-5">
