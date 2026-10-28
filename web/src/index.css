@@ -1,0 +1,132 @@
+/* Global styles for Gather: Tailwind layers plus a few custom animations used in the call screen. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Let pages (and the full-screen call view) fill the whole viewport. */
+html, body, #root { height: 100%; }
+/* Horizontal tab/strip scrollers without a visible scrollbar. */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+/* Reactions (👍 🎉 …) float up over a tile and fade out in 3 seconds. */
+@keyframes floatup { 0% { transform: translateY(0) scale(.8); opacity: 0 } 15% { opacity: 1; transform: translateY(-10px) scale(1.15) } 100% { transform: translateY(-90px) scale(1); opacity: 0 } }
+.reaction-float { animation: floatup 3s ease-out forwards; }
+/* Green pulsing ring around the person who is speaking. */
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.7) } 100% { box-shadow: 0 0 0 10px rgba(52,211,153,0) } }
+.speaking { animation: pulse-ring 1.2s infinite; }
+
+/*
+ * Call screen light theme (the sun/moon switch). The call screen is written dark; inside .call-light these rules swap
+ * its dark surfaces and white text for light ones. Video tiles, captions and the shared screen keep their dark look
+ * (.keep-dark), and text on solid green/red/blue stays white.
+ */
+.call-light { color-scheme: light; }
+/* The call screen's own container (it carries .call-light itself). */
+.call-light.bg-ink-900 { background-color: #f3f5f9; }
+.call-light.text-white { color: #0f172a; }
+.call-light :is(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark) { color: #fff; }
+.call-light .bg-ink-900:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: #f3f5f9; }
+@media (min-width: 1024px) { .call-light .lg\:bg-ink-900:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: #f3f5f9; } }
+.call-light .bg-ink-800:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: #ffffff; }
+.call-light .bg-ink-700:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: #ffffff; }
+.call-light .bg-ink-700\/95:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: #ffffff; }
+@media (min-width: 1024px) { .call-light .lg\:bg-ink-800:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: #ffffff; } }
+.call-light .bg-ink-600:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: #e2e8f0; }
+.call-light .bg-white\/5:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: rgb(15 23 42 / 0.04); }
+.call-light .bg-white\/10:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: rgb(15 23 42 / 0.06); }
+.call-light .bg-white\/15:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: rgb(15 23 42 / 0.08); }
+.call-light .bg-white\/20:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: rgb(15 23 42 / 0.1); }
+.call-light .hover\:bg-white\/5:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *):hover { background-color: rgb(15 23 42 / 0.05); }
+.call-light .hover\:bg-white\/10:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *):hover { background-color: rgb(15 23 42 / 0.08); }
+.call-light .hover\:bg-white\/15:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *):hover { background-color: rgb(15 23 42 / 0.1); }
+.call-light .hover\:bg-white\/20:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *):hover { background-color: rgb(15 23 42 / 0.12); }
+.call-light .hover\:bg-white\/30:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *):hover { background-color: rgb(15 23 42 / 0.15); }
+.call-light .group:hover .group-hover\:bg-white\/20:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { background-color: rgb(15 23 42 / .12); }
+.call-light .text-white:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #0f172a; }
+.call-light .hover\:text-white:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *):hover { color: #0f172a; }
+.call-light .text-white\/90:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #1e293b; }
+.call-light .text-white\/80:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #334155; }
+.call-light .text-white\/70:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #475569; }
+.call-light .text-white\/60:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #64748b; }
+.call-light .text-white\/50:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #64748b; }
+.call-light .text-white\/40:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #94a3b8; }
+.call-light .text-white\/30:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #cbd5e1; }
+.call-light .placeholder\:text-white\/40:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *)::placeholder { color: #94a3b8; }
+.call-light .border-white\/10:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { border-color: #e2e8f0; }
+@media (min-width: 1024px) { .call-light .lg\:border-white\/10:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { border-color: #e2e8f0; } }
+.call-light .ring-white\/10:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { --tw-ring-color: rgb(15 23 42 / .08); }
+.call-light .ring-ink-900:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { --tw-ring-color: #f3f5f9; }
+.call-light .text-brand-300:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #047857; }
+.call-light .text-brand-200:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #047857; }
+.call-light .text-amber-300:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #b45309; }
+.call-light .text-amber-200:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #b45309; }
+.call-light .text-sky-300:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #0369a1; }
+.call-light .text-sky-200:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #0369a1; }
+.call-light .text-sky-100:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #0369a1; }
+.call-light .text-red-400:not(.bg-brand-600, .bg-red-600, .bg-red-500\/90, .bg-red-600\/90, .bg-red-600\/80, .bg-sky-600, .keep-dark, .bg-brand-600 *, .bg-red-600 *, .bg-red-500\/90 *, .bg-red-600\/90 *, .bg-red-600\/80 *, .bg-sky-600 *, .keep-dark *) { color: #dc2626; }
+
+/* ---------------------------------------------------------------- Landing page animations */
+/* Hero text and buttons rise in one after another (animation-delay set per element). */
+@keyframes hero-in { from { opacity: 0; transform: translateY(18px) } to { opacity: 1; transform: none } }
+.hero-in { animation: hero-in .7s cubic-bezier(.2,.7,.2,1) both; }
+/* Capsule video tiles bob gently, each on its own delay. */
+/* (Uses `translate`, not `transform`, so it adds to Tailwind's own translate classes instead of replacing them.) */
+@keyframes float-y { 0%, 100% { translate: 0 0 } 50% { translate: 0 -12px } }
+.float { animation: float-y 6s ease-in-out infinite; }
+/* Blinking REC dot. */
+@keyframes rec-blink { 0%, 100% { opacity: 1 } 50% { opacity: .25 } }
+.rec { animation: rec-blink 1.4s ease-in-out infinite; }
+/* Reaction and caption bubbles pop in, then keep floating. */
+@keyframes pop-in { 0% { opacity: 0; scale: .6 } 70% { opacity: 1; scale: 1.06 } 100% { opacity: 1; scale: 1 } }
+.pop { animation: pop-in .6s cubic-bezier(.2,.8,.3,1.3) both, float-y 5s ease-in-out 1s infinite; }
+/* Big soft background shapes drift slowly. */
+@keyframes drift { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(-30px, 24px) scale(1.06) } }
+.blob { animation: drift 14s ease-in-out infinite; }
+/* "Works with" strip scrolls sideways forever (the list is drawn twice), fading at the edges. */
+@keyframes marquee { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+.marquee { animation: marquee 28s linear infinite; }
+.marquee:hover { animation-play-state: paused; }
+.marquee-mask { mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+/* Sections fade up as they scroll into view (Landing.tsx adds .in). */
+.reveal { opacity: 0; translate: 0 28px; transition: opacity .7s ease, translate .8s cubic-bezier(.2,.7,.2,1), scale .6s cubic-bezier(.2,.8,.3,1.3), transform .3s, box-shadow .3s; }
+.reveal.in { opacity: 1; translate: none; }
+/* Feature tab content fades in when you switch tabs; the fake playback bar fills up. */
+@keyframes tab-in { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+.tab-in { animation: tab-in .45s ease both; }
+@keyframes progress { from { width: 8% } to { width: 92% } }
+.progress { animation: progress 9s linear infinite; }
+/* Dashed line between the "how it works" steps flows left to right. */
+@keyframes dash-flow { to { stroke-dashoffset: -12 } }
+.dash { animation: dash-flow 1s linear infinite; }
+/* On every load the hero's parts fly in from different sides (Kepripun hero). */
+@keyframes enter-from { from { opacity: 0; translate: var(--from) } to { opacity: 1; translate: 0 0 } }
+.enter-up, .enter-down, .enter-left, .enter-right { animation: enter-from .9s cubic-bezier(.2,.75,.2,1) both; }
+.enter-up { --from: 0 60px; }      /* rises from below */
+.enter-down { --from: 0 -60px; }   /* drops from above */
+.enter-left { --from: -80px 0; }   /* slides in from the left */
+.enter-right { --from: 80px 0; }   /* slides in from the right */
+@keyframes enter-zoom { from { opacity: 0; scale: .7 } to { opacity: 1; scale: 1 } }
+.enter-zoom { animation: enter-zoom .9s cubic-bezier(.2,.75,.2,1.2) both; }
+/* After landing, some tiles keep drifting side to side (others bob up and down with .float). */
+@keyframes float-x { 0%, 100% { translate: 0 0 } 50% { translate: 10px 0 } }
+.float-x { animation: float-x 7s ease-in-out infinite; }
+/* The little pill pictures in the headline rock gently. */
+@keyframes wiggle { 0%, 100% { rotate: -6deg } 50% { rotate: 6deg } }
+.wiggle { animation: wiggle 3s ease-in-out infinite; }
+/* Lines between the tiles draw themselves (paths use pathLength=1). */
+@keyframes draw { to { stroke-dashoffset: 0 } }
+.draw { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.in .draw { animation: draw 1.4s ease-out .6s forwards; }
+/* Sections below slide in from different sides as they scroll into view (default: from below). */
+.reveal-left:not(.in) { translate: -70px 0; }
+.reveal-right:not(.in) { translate: 70px 0; }
+.reveal-down:not(.in) { translate: 0 -40px; }
+.reveal-fade:not(.in) { translate: none; }
+.reveal-zoom:not(.in) { translate: none; scale: .4; }
+/* People who ask for less motion get a still page. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-in, .float, .float-x, .rec, .pop, .blob, .marquee, .tab-in, .progress, .dash, .wiggle,
+  .enter-up, .enter-down, .enter-left, .enter-right, .enter-zoom { animation: none !important; }
+  .draw { animation: none; stroke-dashoffset: 0; }
+  .reveal-left, .reveal-right, .reveal-down, .reveal-zoom { translate: none !important; scale: none !important; }
+  .reveal { opacity: 1; translate: none; transition: none; }
+}

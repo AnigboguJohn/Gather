@@ -1,0 +1,17 @@
+# LiveKit media server (SFU) config for local use.
+# Keys must match LIVEKIT_API_KEY / LIVEKIT_API_SECRET in .env
+port: 7880
+rtc:
+  tcp_port: 7881
+  udp_port: 7882          # one UDP port for all media (easy to open in Docker/firewalls)
+  use_external_ip: false
+keys:
+  devkey: secret-for-local-dev-only-0123456789
+webhook:
+  api_key: devkey
+  urls:
+    - http://app:8080/api/livekit/webhook
+room:
+  empty_timeout: 300
+logging:
+  level: info

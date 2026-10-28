@@ -1,0 +1,67 @@
+# Gather: everything you need on one machine.
+#   docker compose up --build        then open http://localhost:8080
+# Emails (sign-in codes, invites, summaries) land in the test inbox: http://localhost:8025
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gather
+      POSTGRES_PASSWORD: gather
+      POSTGRES_DB: gather
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gather"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # LiveKit: the media server (SFU) that carries audio, video and screen shares.
+  livekit:
+    image: livekit/livekit-server:v1.9.1
+    command: --config /etc/livekit.yaml --node-ip 127.0.0.1
+    volumes:
+      - ./deploy/livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880"       # signalling (browsers connect here)
+      - "7881:7881"       # media over TCP (fallback)
+      - "7882:7882/udp"   # media over UDP
+
+  # Local test inbox: catches every email the app sends.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+
+  ai:
+    build: ./ai
+    env_file: .env
+    restart: unless-stopped
+
+  app:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://gather:gather@postgres:5432/gather
+      LIVEKIT_API_URL: http://livekit:7880
+      AI_URL: http://ai:8001
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+    ports:
+      - "8080:8080"
+    volumes:
+      - appdata:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      livekit:
+        condition: service_started
+      ai:
+        condition: service_started
+      mailpit:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  appdata:
