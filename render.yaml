@@ -1,0 +1,106 @@
+# Render Blueprint for Gather: render.com → New → Blueprint → pick this repo.
+# It creates ONLY the resources below (all named gather-…); other services in the same workspace are not touched.
+#
+#   gather      the web app + API + real-time signal (Docker, ./Dockerfile)
+#   gather-ai   captions / translation / summaries (Docker, ./ai/Dockerfile), locked with a shared AI_TOKEN
+#   gather-db   Postgres
+#
+# Video and audio (LiveKit) can't run on Render (it needs UDP ports): use LiveKit Cloud and paste its
+# URL/key/secret below. Values marked `sync: false` are asked for when you create the Blueprint; nothing secret
+# is stored in this file.
+#
+# Free plan notes: services sleep after 15 minutes idle (the next visit wakes them in about a minute), a workspace
+# gets one free Postgres (if another app already uses it, change gather-db's plan to basic-256mb), and free
+# services have no permanent disk, so call recordings are lost on restart.
+
+services:
+  - type: web
+    name: gather
+    runtime: docker
+    plan: free
+    region: frankfurt          # the closest Render region to West Africa
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gather-db
+          property: connectionString
+      # Generated once by Render; keep them (changing them signs everyone out / voids codes).
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CODE_SECRET
+        generateValue: true
+      - key: AI_TOKEN
+        generateValue: true
+      # The AI service's address: after the first deploy, copy gather-ai's URL (https://gather-ai-….onrender.com).
+      - key: AI_URL
+        sync: false
+      # LiveKit Cloud (cloud.livekit.io → your project → Settings → Keys).
+      - key: LIVEKIT_URL          # wss://<project>.livekit.cloud (browsers connect here)
+        sync: false
+      - key: LIVEKIT_API_URL      # https://<project>.livekit.cloud (the server calls this)
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      # Email (Gmail app password, or a mail service later).
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Platform admin panel (/admin).
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Google Calendar (optional): add <your Render URL>/api/calendar/google/callback in Google Cloud.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # Plans and payments. Demo payments until real Paystack/Flutterwave keys are added.
+      - key: DEMO_PAYMENTS
+        value: "true"
+      - key: FREE_MEETING_MINUTES
+        value: "120"
+      # Never print sign-in codes in the logs on a live server.
+      - key: DEV_SHOW_CODES
+        value: "false"
+
+  - type: web
+    name: gather-ai
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./ai/Dockerfile
+    dockerContext: ./ai
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Same secret as the app: only Gather can use the AI (it's reachable from the internet on the free plan).
+      - key: AI_TOKEN
+        fromService:
+          type: web
+          name: gather
+          envVarKey: AI_TOKEN
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+databases:
+  - name: gather-db
+    plan: free
+    region: frankfurt
+    databaseName: gather
+    user: gather

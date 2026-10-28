@@ -36,6 +36,8 @@ services:
   ai:
     build: ./ai
     env_file: .env
+    environment:
+      PORT: "8001"   # .env's PORT is the app's; the server reaches the AI service on ai:8001
     restart: unless-stopped
 
   app:

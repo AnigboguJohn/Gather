@@ -14,7 +14,8 @@ const bool = (k: string, d = false) => (process.env[k] ? ["1", "true", "yes"].in
 /** Every setting the server uses, read once at startup. Import { config } instead of reading process.env. */
 export const config = {
   port: num("PORT", 8080),
-  appUrl: env("APP_URL", "http://localhost:8080").replace(/\/$/, ""),
+  // Public address of the app (links in emails, calendar, OAuth). On Render it defaults to the service's own URL.
+  appUrl: env("APP_URL", process.env.RENDER_EXTERNAL_URL || "http://localhost:8080").replace(/\/$/, ""),
   databaseUrl: env("DATABASE_URL", "postgres://gather:gather@localhost:5432/gather"),
   // Signs session tokens and room tickets. MUST be changed to a long random value in production.
   jwtSecret: env("JWT_SECRET", "dev-only-change-me-please-32-chars-min"),
@@ -36,7 +37,9 @@ export const config = {
   },
   dialinNumber: env("DIALIN_NUMBER"), // e.g. +234 1 700 0000, shown to guests when set
 
-  aiUrl: env("AI_URL", "http://localhost:8001"),
+  aiUrl: env("AI_URL", "http://localhost:8001").replace(/\/$/, ""),
+  // Shared secret sent to the AI service (x-ai-token) when it is reachable from the internet (e.g. Render).
+  aiToken: env("AI_TOKEN", ""),
 
   // Plans: Free meetings last up to 2 hours (120 minutes).
   freeMeetingMinutes: num("FREE_MEETING_MINUTES", 120),

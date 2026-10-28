@@ -8,7 +8,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+import hmac
+
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from . import llm, logic
@@ -28,6 +31,16 @@ def _load_env() -> None:
 _load_env()
 # The FastAPI app (only the Gather server calls it; it is not exposed to browsers).
 app = FastAPI(title="Gather AI", version="1.0")
+
+
+@app.middleware("http")
+async def require_token(request: Request, call_next):
+    """If AI_TOKEN is set, only callers that send it (the Gather server, header x-ai-token) may use the AI.
+    Without it the service is open, which is fine on a private network (Docker Compose) but not on the internet."""
+    token = os.getenv("AI_TOKEN", "")
+    if token and request.url.path != "/health" and not hmac.compare_digest(request.headers.get("x-ai-token", ""), token):
+        return JSONResponse({"detail": "Not allowed"}, status_code=401)
+    return await call_next(request)
 
 
 @app.get("/health")

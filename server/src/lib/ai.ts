@@ -6,10 +6,13 @@
 import { config } from "../config.js";
 import { log } from "../log.js";
 
+/** The shared secret for the AI service, when one is set (AI_TOKEN). */
+const tokenHeader = (): Record<string, string> => (config.aiToken ? { "x-ai-token": config.aiToken } : {});
+
 /** POST JSON to the AI service with a timeout; throws with the status and a short body on errors. */
 async function post<T>(path: string, body: unknown, timeoutMs = 60_000): Promise<T> {
   const r = await fetch(`${config.aiUrl}${path}`, {
-    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+    method: "POST", headers: { "content-type": "application/json", ...tokenHeader() }, body: JSON.stringify(body),
     signal: AbortSignal.timeout(timeoutMs),
   });
   if (!r.ok) throw new Error(`AI ${path} ${r.status}: ${(await r.text()).slice(0, 200)}`);
@@ -21,7 +24,7 @@ export async function transcribe(audio: Buffer, mime: string, language: string):
   const form = new FormData();
   form.append("audio", new Blob([new Uint8Array(audio)], { type: mime }), mime.includes("ogg") ? "chunk.ogg" : "chunk.webm");
   form.append("language", language);
-  const r = await fetch(`${config.aiUrl}/transcribe`, { method: "POST", body: form, signal: AbortSignal.timeout(30_000) });
+  const r = await fetch(`${config.aiUrl}/transcribe`, { method: "POST", headers: tokenHeader(), body: form, signal: AbortSignal.timeout(30_000) });
   if (!r.ok) throw new Error(`AI /transcribe ${r.status}: ${(await r.text()).slice(0, 200)}`);
   return (await r.json()) as { text: string };
 }
