@@ -57,6 +57,12 @@ export const config = {
     pass: env("SMTP_PASS"),
     from: env("MAIL_FROM", "Gather <no-reply@gather.local>"),
   },
+  // Email over HTTPS instead of SMTP (hosts like Render's free plan block SMTP ports). Set one key to use it:
+  // Brevo (brevo.com, free 300/day, a verified sender address is enough) or Resend (resend.com, needs a domain).
+  emailApi: {
+    brevoKey: env("BREVO_API_KEY"),
+    resendKey: env("RESEND_API_KEY"),
+  },
   // WhatsApp Cloud API (optional). Empty = hosts get wa.me click-to-send links instead.
   whatsapp: {
     token: env("WHATSAPP_TOKEN"),

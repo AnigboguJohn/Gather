@@ -3,7 +3,8 @@
  *  - WhatsApp Cloud API sends for real when WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID are set.
  *    Without them, the host gets ready-to-send wa.me links (click-to-share), which open WhatsApp
  *    with the message filled in.
- *  - Email goes to any SMTP server; locally that is Mailpit (http://localhost:8025).
+ *  - Email goes to any SMTP server (locally Mailpit, http://localhost:8025), or over HTTPS through Brevo or Resend
+ *    when BREVO_API_KEY / RESEND_API_KEY is set (needed where SMTP ports are blocked, e.g. Render's free plan).
  *  - SMS goes through Africa's Talking when its keys are set.
  * Every attempt is logged in the notifications table so hosts can see what was delivered.
  */
@@ -64,24 +65,57 @@ export function emailLayout(o: { preheader: string; body: string }) {
 </table></td></tr></table></body></html>`;
 }
 
+/** "Gather <hi@x.com>" → { name: "Gather", email: "hi@x.com" }. */
+function parseAddress(a: string) {
+  const m = a.match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/);
+  return m ? { name: m[1].trim() || "Gather", email: m[2].trim() } : { name: "Gather", email: a.trim() };
+}
+
+type Mail = { to: string; subject: string; text: string; html?: string; ics?: { content: string; method: "REQUEST" | "CANCEL" | "PUBLISH" } };
+
+/** POST to an email API; throws with the provider's message when it refuses. */
+async function postMail(url: string, headers: Record<string, string>, body: unknown) {
+  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", accept: "application/json", ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(20_000) });
+  if (!r.ok) throw new Error(`${new URL(url).host} ${r.status}: ${(await r.text()).slice(0, 300)}`);
+}
+
+/** Send through Brevo's or Resend's HTTPS API (the calendar invite goes along as an invite.ics attachment). */
+async function sendViaApi(m: Mail, ref: string) {
+  const from = parseAddress(config.smtp.from);
+  const ics = m.ics ? [{ name: "invite.ics", filename: "invite.ics", content: Buffer.from(m.ics.content).toString("base64") }] : undefined;
+  if (config.emailApi.brevoKey) {
+    await postMail("https://api.brevo.com/v3/smtp/email", { "api-key": config.emailApi.brevoKey }, {
+      sender: from, replyTo: from, to: [{ email: m.to }], subject: m.subject, textContent: m.text, htmlContent: m.html ?? undefined,
+      headers: { "X-Entity-Ref-ID": ref }, attachment: ics?.map(({ name, content }) => ({ name, content })),
+    });
+  } else {
+    await postMail("https://api.resend.com/emails", { authorization: `Bearer ${config.emailApi.resendKey}` }, {
+      from: `${from.name} <${from.email}>`, reply_to: from.email, to: [m.to], subject: m.subject, text: m.text, html: m.html,
+      headers: { "X-Entity-Ref-ID": ref }, attachments: ics?.map(({ filename, content }) => ({ filename, content })),
+    });
+  }
+}
+
+/** Which way email leaves the server: "brevo", "resend" or "smtp". */
+export const emailRoute = () => (config.emailApi.brevoKey ? "brevo" : config.emailApi.resendKey ? "resend" : "smtp");
+
 /**
  * Send one email (optionally with an HTML version and a calendar invite). Returns "sent" or "failed"; never throws.
  * Every email gets a unique reference header so Gmail doesn't fold repeat messages (like codes) into one thread.
  */
-export async function sendEmail(o: {
-  meetingId?: string | null; to: string; subject: string; text: string; html?: string; kind: string;
-  ics?: { content: string; method: "REQUEST" | "CANCEL" | "PUBLISH" };
-}): Promise<Status> {
+export async function sendEmail(o: Mail & { meetingId?: string | null; kind: string }): Promise<Status> {
+  const ref = crypto.randomUUID();
   try {
-    await mailer.sendMail({
+    if (emailRoute() !== "smtp") await sendViaApi(o, ref);
+    else await mailer.sendMail({
       from: config.smtp.from, replyTo: config.smtp.from, to: o.to, subject: o.subject, text: o.text, html: o.html,
-      headers: { "X-Entity-Ref-ID": crypto.randomUUID() },
+      headers: { "X-Entity-Ref-ID": ref },
       icalEvent: o.ics ? { method: o.ics.method, content: o.ics.content, filename: "invite.ics" } : undefined,
     });
     await record(o.meetingId ?? null, "email", o.to, o.kind, "sent");
     return "sent";
   } catch (e: any) {
-    log.warn({ err: e?.message, to: o.to }, "email failed");
+    log.warn({ err: e?.message, to: o.to, via: emailRoute() }, "email failed");
     await record(o.meetingId ?? null, "email", o.to, o.kind, "failed", e?.message);
     return "failed";
   }
